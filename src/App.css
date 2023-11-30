@@ -18,12 +18,11 @@ button:hover {
   background-color: #e0e0e0;
 }
 
-canvas {
+#preview {
   display: none;
   border: 1px solid black;
   background-color: white;
-  height: auto;
-  width: 100%;
+  width: min(100%, 750px);
 }
 
 /* Container */
@@ -75,19 +74,4 @@ canvas {
 
 .column_selector > label {
   margin: 2px 0;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }

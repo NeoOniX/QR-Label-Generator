@@ -76,8 +76,6 @@ const App = () => {
   };
 
   const handlePreviewClick = () => {
-    const preview = previewElmt.current.getContext("bitmaprenderer");
-
     const [qr, ref, nom] = [
       data[1][qrIndex],
       data[1][flIndex],
@@ -88,7 +86,7 @@ const App = () => {
       // Transform to image
       const img = new Image();
 
-      img.onload = () => {
+      img.onload = async () => {
         // Check size
         offCtx.font = "30px Arial";
         const ml = Math.max(
@@ -111,14 +109,11 @@ const App = () => {
         ctx.fillText(nom, 106, 2 * (h / 3) + 15, canvas.width - 136);
 
         // Draw preview
-        let bitmap = canvas.transferToImageBitmap();
-        preview.transferFromImageBitmap(bitmap);
+        let blob = await canvas.convertToBlob();
+        previewElmt.current.src = URL.createObjectURL(blob);
 
         // Set Preview Size
         previewElmt.current.style.display = "block";
-        previewElmt.current.style.height =
-          previewElmt.current.offsetWidth / (canvas.width / canvas.height) +
-          "px";
 
         // Display "Generate" button
         setStep(3);
@@ -249,7 +244,7 @@ const App = () => {
           <div className="step">
             <h2>Étape 3 - Prévisualisation</h2>
             <button onClick={handlePreviewClick}>Prévisualiser</button>
-            <canvas id="preview" ref={previewElmt}></canvas>
+            <img id="preview" alt="preview" ref={previewElmt} />
           </div>
         )}
         {step > 2 && (
