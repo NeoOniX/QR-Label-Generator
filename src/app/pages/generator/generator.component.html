@@ -27,56 +27,106 @@
               </div>
             </mat-step>
             <mat-step state="columns" [completed]="columnsValid">
-              <ng-template matStepLabel>Choix des colonnes</ng-template>
+              <ng-template matStepLabel>Personnalisation</ng-template>
               <ng-template matStepperIcon="columns">
                 <mat-icon>rule</mat-icon>
               </ng-template>
               <div class="d-column-flex mt-2">
-                <div class="row">
-                  <mat-form-field class="col-7">
-                    <mat-label>Valeur du QR Code</mat-label>
-                    <mat-select [formControl]="qrColumns" (selectionChange)="onColumnsSubmit()">
-                      @for (qrCol of columns; track qrCol.name; let i = $index) {
-                        <mat-option [value]="i">{{qrCol.name}}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                  <div class="col-5 mt-auto mb-auto">
-                    <h4>Les valeurs de cette colonne seront utilisées pour générer les QR Codes.</h4>
+
+                <div class="row mt-2">
+                  <button type="button" mat-raised-button color="primary" (click)="onLabelEdited()">
+                    <mat-icon>image</mat-icon>
+                    Prévisualiser
+                  </button>
+                  <button type="button" mat-fab color="primary" (click)="addColumn()">
+                    <mat-icon>add</mat-icon>
+                  </button>
+                </div>
+
+                <div class="row mt-2">
+                  <div class="col-6">
+                        <mat-form-field>
+                          <mat-label>Hauteur</mat-label>
+                          <input matInput [(ngModel)]="label.height" type="number">
+                        </mat-form-field>
+                  </div>
+                  <div class="col-6">
+                        <mat-form-field>
+                          <mat-label>Largeur</mat-label>
+                          <input matInput [(ngModel)]="label.width" type="number">
+                        </mat-form-field>
                   </div>
                 </div>
 
-                <mat-divider class="mb-4"></mat-divider>
+                @if (label.columns.length > 0) {
+                  <table mat-table [dataSource]="label.columns">
+                    <ng-container matColumnDef="name">
+                      <th mat-header-cell *matHeaderCellDef>Colonne</th>
+                      <td mat-cell *matCellDef="let element">
+                        <mat-form-field>
+                          <mat-select [(value)]="element.name">
+                            @for (col of sourceColumns; track col) {
+                              <mat-option [value]="col">{{col}}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="type">
+                      <th mat-header-cell *matHeaderCellDef>Type</th>
+                      <td mat-cell *matCellDef="let element">
+                      <mat-form-field>
+                          <mat-select [(value)]="element.type">
+                            <mat-option value="text">Texte</mat-option>
+                            <mat-option value="qr">QR</mat-option>
+                            <mat-option value="img">Image</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="x">
+                      <th mat-header-cell *matHeaderCellDef>X</th>
+                      <td mat-cell *matCellDef="let element">
+                        <mat-form-field>
+                          <input matInput [(ngModel)]="element.x" type="number">
+                        </mat-form-field>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="y">
+                      <th mat-header-cell *matHeaderCellDef>Y</th>
+                      <td mat-cell *matCellDef="let element">
+                        <mat-form-field>
+                          <input matInput [(ngModel)]="element.y" type="number">
+                        </mat-form-field>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="height">
+                      <th mat-header-cell *matHeaderCellDef>Hauteur</th>
+                      <td mat-cell *matCellDef="let element">
+                        <mat-form-field>
+                          <input matInput [(ngModel)]="element.height" type="number">
+                        </mat-form-field>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="width">
+                      <th mat-header-cell *matHeaderCellDef>Largeur</th>
+                      <td mat-cell *matCellDef="let element">
+                        <mat-form-field>
+                          <input matInput [(ngModel)]="element.width" type="number">
+                        </mat-form-field>
+                      </td>
+                    </ng-container>
 
-                <div class="row">
-                  <mat-form-field class="col-7">
-                    <mat-label>Texte de la 1ère ligne</mat-label>
-                    <mat-select [formControl]="flColumns" (selectionChange)="onColumnsSubmit()">
-                      @for (flCol of columns; track flCol.name; let i = $index) {
-                        <mat-option [value]="i">{{flCol.name}}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                  <div class="col-5 mt-auto mb-auto">
-                    <h4>Les valeurs de cette colonne seront écrites sur la première ligne de l'étiquette.</h4>
-                  </div>
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                  </table>
+                }
+
+              @if (labelSrc != '') {
+                <div class="row mt-2">
+                  <img [src]="labelSrc" alt="Prévisualisation" class="col-12">
                 </div>
-
-                <mat-divider class="mb-4"></mat-divider>
-
-                <div class="row">
-                  <mat-form-field class="col-7">
-                    <mat-label>Texte de la 2nde ligne</mat-label>
-                    <mat-select [formControl]="slColumns" (selectionChange)="onColumnsSubmit()">
-                      @for (slCol of columns; track slCol.name; let i = $index) {
-                        <mat-option [value]="i">{{slCol.name}}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                  <div class="col-5 mt-auto mb-auto">
-                    <h4>Les valeurs de cette colonne seront écrites sur la seconde ligne de l'étiquette.</h4>
-                  </div>
-                </div>
+              }
               </div>
               <div class="d-flex justify-content-center mt-2">
                 <button mat-button matStepperPrevious>Précédent</button>
@@ -92,9 +142,9 @@
                 <mat-icon>image</mat-icon>
                 Prévisualiser
               </button>
-              @if (src != '') {
+              @if (previewSrc != '') {
                 <div class="row mt-2">
-                  <img [src]="src" alt="Prévisualisation" class="col-12 col-md-6 col-lg-4">
+                  <img [src]="previewSrc" alt="Prévisualisation" class="col-12 col-md-6 col-lg-4">
                 </div>
               }
               <div class="d-flex justify-content-center mt-2">
