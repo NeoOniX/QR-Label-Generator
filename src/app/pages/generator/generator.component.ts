@@ -52,6 +52,9 @@ export class GeneratorComponent {
 
   selectedFile: any = null;
 
+  backgroundFile: any = null;
+  backgroundImage = new Image();
+
   qrColumns = new FormControl(null, [Validators.required]);
   flColumns = new FormControl(null, [Validators.required]);
   slColumns = new FormControl(null, [Validators.required]);
@@ -61,14 +64,14 @@ export class GeneratorComponent {
 
   data: unknown[] = [];
 
-  columnsValid: boolean = false;
+  customValid: boolean = false;
 
   //#endregion
 
   //#region STEP 1 - FILE
 
   onFileSelected(event: any): void {
-    this.previewDone = false;
+    this.customValid = false;
 
     this.selectedFile = event.target.files[0] ?? null;
 
@@ -86,15 +89,40 @@ export class GeneratorComponent {
     }
   }
 
+  onBackgroundSelected(event: any): void {
+    console.log("On BG selected");
+    this.backgroundFile = event.target.files[0] ?? null;
+
+    if (this.backgroundFile) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.backgroundImage.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(this.backgroundFile);
+    }
+  }
+
+  onBackgroundRemoved(): void {
+    this.backgroundFile = null;
+  }
+
   //#endregion
 
-  //#region STEP 2 - COLUMNS & FORMAT
+  //#region STEP 2 - COLUMNS - FORMAT - PREVIEW
 
-  displayedColumns: string[] = ['name', 'type', 'x', 'y', 'height', 'width'];
+  displayedColumns: string[] = [
+    'name',
+    'type',
+    'x',
+    'y',
+    'height',
+    'width',
+    'delete',
+  ];
 
   label: Label = {
-    height: 96,
-    width: 200,
+    height: 300,
+    width: 800,
     columns: [],
   };
 
@@ -114,12 +142,62 @@ export class GeneratorComponent {
     ];
   }
 
-  deleteColumn(index: number): void {
-    this.label.columns.splice(index, 1);
+  deleteColumn(column: Column): void {
+    this.label.columns = this.label.columns.filter((c) => c !== column);
     this.onLabelEdited();
   }
 
-  async onLabelEdited(): Promise<void> {
+  onLabelEdited(): void {
+    this.generate(this.data[0] as string[], (blob) => {
+      this.labelSrc = URL.createObjectURL(blob);
+      this.customValid = true;
+    });
+  }
+
+  //#endregion
+
+  //#region STEP 3 - DOWNLOAD
+
+  download(): void {
+    const zip = new JSZip();
+
+    let c = 0;
+
+    let ldata = [...this.data] as string[][];
+
+    for (const data of ldata) {
+      this.generate(data, (blob) => {
+        console.log(blob);
+        // Save ZIP
+        zip.file(`image-${c}.png`, blob, {
+          base64: true,
+        });
+        // Download if count
+        c++;
+        console.log('c : ', c);
+        if (c === ldata.length - 1) {
+          console.log('download');
+          zip
+            .generateAsync({
+              type: 'blob',
+              streamFiles: true,
+            })
+            .then((zipData) => {
+              const ln = document.createElement('a');
+              ln.href = window.URL.createObjectURL(zipData);
+              ln.download = 'QR.zip';
+              ln.click();
+            });
+        }
+      });
+    }
+  }
+
+  //#endregion
+
+  //#region GENERATION
+
+  generate(data: string[], callback: (blob: Blob) => void): void {
     // Generate label
     const canvas = new OffscreenCanvas(this.label.width, this.label.height);
 
@@ -132,219 +210,67 @@ export class GeneratorComponent {
 
     const columns = [...this.label.columns];
 
-    const processNext = async (): Promise<void> => {
-      if (columns.length === 0) {
-        // setTimeout(async () => {
-          console.log('canvas conv started');
-          let blob = await canvas.convertToBlob();
-          this.labelSrc = URL.createObjectURL(blob);
-          console.log('canvas converted');
-          console.log(this.labelSrc);
+    if (this.backgroundFile)
+      ctx.drawImage(this.backgroundImage, 0, 0, canvas.width, canvas.height);
 
-          this.previewDone = false;
-          if (
-            this.qrColumns.valid &&
-            this.flColumns.valid &&
-            this.slColumns.valid
-          ) {
-            this.columnsValid = true;
-          }
-        // }, 2000);
+    const processNext = (callback: (blob: Blob) => void): void => {
+      if (columns.length === 0) {
+        canvas.convertToBlob().then(callback);
         return;
       }
 
       const col = columns.shift() as Column;
 
       if (col.type === 'text') {
-        let v = (this.data[0] as string[])[
-          this.sourceColumns.indexOf(col.name)
-        ] as string;
+        if (!data[this.sourceColumns.indexOf(col.name)]) {
+          return processNext(callback);
+        }
+
+        let v = data[this.sourceColumns.indexOf(col.name)] as string;
         ctx.font = `${col.height * 0.75}px Arial`;
         ctx.fillStyle = '#000';
         ctx.fillText(v, col.x, col.y + col.height, col.width);
 
-        console.log('text drawn');
-
-        processNext();
+        processNext(callback);
       }
 
       if (col.type === 'img') {
+        if (!data[this.sourceColumns.indexOf(col.name)]) {
+          return processNext(callback);
+        }
+
         let v = ('data:image/png;base64, ' +
-          (this.data[0] as string[])[
-            this.sourceColumns.indexOf(col.name)
-          ]) as string;
+          data[this.sourceColumns.indexOf(col.name)]) as string;
         const img = new Image();
 
         img.onload = () => {
           ctx.drawImage(img, col.x, col.y, col.width, col.height);
 
-          console.log('img drawn');
-
-          processNext();
+          return processNext(callback);
         };
         img.src = v;
       }
 
       if (col.type === 'qr') {
-        let v = (this.data[0] as string[])[
-          this.sourceColumns.indexOf(col.name)
-        ] as string;
+        if (!data[this.sourceColumns.indexOf(col.name)]) {
+          return processNext(callback);
+        }
+
+        let v = data[this.sourceColumns.indexOf(col.name)] as string;
         QRCode.toDataURL(v, (err, url) => {
           const img = new Image();
-
-          console.log('url : ', url);
 
           img.onload = () => {
             ctx.drawImage(img, col.x, col.y, col.width, col.height);
 
-            console.log('qr drawn');
-
-            processNext();
+            return processNext(callback);
           };
           img.src = url;
         });
       }
     };
 
-    processNext();
-  }
-
-  //#endregion
-
-  //#region STEP 3 - PREVIEW
-
-  previewDone: boolean = false;
-
-  offCanvas = new OffscreenCanvas(10, 10);
-  offCtx = this.offCanvas.getContext('2d');
-
-  previewSrc: string = '';
-
-  onPreviewClick(): void {
-    const fr = this.data[0] as string[];
-
-    const qrIndex = this.qrColumns.value as unknown as number;
-    const flIndex = this.flColumns.value as unknown as number;
-    const slIndex = this.slColumns.value as unknown as number;
-
-    const [qr, ref, nom] = [fr[qrIndex], fr[flIndex], fr[slIndex]];
-
-    QRCode.toDataURL(qr, (err, url) => {
-      // Transform to image
-      const img = new Image();
-
-      img.onload = async () => {
-        if (!this.offCtx) return;
-
-        // Check size
-        this.offCtx.font = '30px Arial';
-        const ml = Math.max(
-          this.offCtx.measureText(ref).width,
-          this.offCtx.measureText(nom).width
-        );
-
-        // Get height and width
-        const [h, w] = [96, 106 + ml];
-
-        // Generate sticker
-        const canvas = new OffscreenCanvas(w, h);
-        const ctx = canvas.getContext('2d');
-
-        if (!ctx) return;
-
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, -10, -10, 116, 116);
-        ctx.font = '30px Arial';
-        ctx.fillStyle = '#000';
-        ctx.fillText(ref, 106, h / 3 + 5, canvas.width - 136);
-        ctx.fillText(nom, 106, 2 * (h / 3) + 15, canvas.width - 136);
-
-        // Draw preview
-        let blob = await canvas.convertToBlob();
-        this.previewSrc = URL.createObjectURL(blob);
-
-        // Done
-        this.previewDone = true;
-      };
-
-      img.src = url;
-    });
-  }
-
-  //#endregion
-
-  //#region STEP 4 - DOWNLOAD
-
-  download(): void {
-    const zip = new JSZip();
-
-    const qrIndex = this.qrColumns.value as unknown as number;
-    const flIndex = this.flColumns.value as unknown as number;
-    const slIndex = this.slColumns.value as unknown as number;
-
-    let c = 0;
-
-    this.data.forEach((r, i) => {
-      const line = r as string[];
-      const [qr, ref, nom] = [line[qrIndex], line[flIndex], line[slIndex]];
-
-      QRCode.toDataURL(qr, (err, url) => {
-        // Transform to image
-        const img = new Image();
-
-        img.onload = async () => {
-          if (!this.offCtx) return;
-
-          // Check size
-          this.offCtx.font = '30px Arial';
-          const ml = Math.max(
-            this.offCtx.measureText(ref).width,
-            this.offCtx.measureText(nom).width
-          );
-
-          // Get height and width
-          const [h, w] = [96, 106 + ml];
-
-          // Generate sticker
-          const canvas = new OffscreenCanvas(w, h);
-          const ctx = canvas.getContext('2d');
-
-          if (!ctx) return;
-
-          ctx.fillStyle = '#fff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, -10, -10, 116, 116);
-          ctx.font = '30px Arial';
-          ctx.fillStyle = '#000';
-          ctx.fillText(ref, 106, h / 3 + 5, canvas.width - 136);
-          ctx.fillText(nom, 106, 2 * (h / 3) + 15, canvas.width - 136);
-
-          // Save ZIP
-          zip.file(`image-${i}.png`, await canvas.convertToBlob(), {
-            base64: true,
-          });
-
-          // Download if count
-          c++;
-          if (c === this.data.length - 1) {
-            zip
-              .generateAsync({
-                type: 'blob',
-                streamFiles: true,
-              })
-              .then((zipData) => {
-                const ln = document.createElement('a');
-                ln.href = window.URL.createObjectURL(zipData);
-                ln.download = 'QR.zip';
-                ln.click();
-              });
-          }
-        };
-
-        img.src = url;
-      });
-    });
+    processNext(callback);
   }
 
   //#endregion
