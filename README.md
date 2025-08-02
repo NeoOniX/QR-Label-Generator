@@ -1,27 +1,39 @@
-# QrcodeLabelGenerator
+# QR Label Generator
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.0.3.
+## QR Code Label Generator with CSV and Image support
 
-## Development server
+With this app you can generate customizable labels with (or without) QR codes, text elements, and images (from base64).  
+Using a CSV file as source, and after customizing the design, the apps outputs a zip file containing png image for each label.
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## ✨ Main Features
 
-## Code scaffolding
+- 📁 Import labels from a CSV file (one row = one label)
+- 🔳 Add **QR codes**, **text**, and **images** (from base64) to each label
+- 🎨 Customize layout, sizes, and element positions
+- 📦 Export a **ZIP archive** containing one **PNG** image per label
+- 🧱 Built with **Angular** and **Angular Material** for a responsive and intuitive UI
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+---
 
-## Build
+## 🛠️ Tech Stack
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+| Technology                                                                                                  | Description                             |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| <img width="25" src="https://angular.dev/assets/icons/favicon.ico"> [Angular](https://angular.dev/)    | Frontend framework         |
+| <img width="25" src="https://angular.dev/assets/icons/favicon.ico"> [Angular Material](https://material.angular.dev/)       | UI components and theme       |
+| <img width="25" src="https://www.papaparse.com/favicon.ico"> [Papaparse](https://www.papaparse.com/)      | In-browser CSV parser                    |
+| <img width="25" src="https://github.githubassets.com/favicons/favicon-dark.png"> [Node QRCode](https://github.com/soldair/node-qrcode)                   | QR Code Generator              |
+| <img width="25" src="https://github.githubassets.com/favicons/favicon-dark.png"> [JSZip](https://stuk.github.io/jszip/) | Zip utility                           |
 
-## Running unit tests
+---
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## 🌐 Web Access
 
-## Running end-to-end tests
+The generator is deployed on Github Pages at the following url :  
+https://neoonix.github.io/QR-Label-Generator/
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+---
 
-## Further help
+## 📝 License
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+This project is licensed under the [MIT License](LICENSE).
